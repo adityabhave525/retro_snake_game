@@ -1,3 +1,4 @@
+#include <iostream>
 #include <raylib.h>
 #include <deque>
 #include <raymath.h>
@@ -9,6 +10,18 @@ int cell_size = 30;
 int cell_count = 25;
 
 double last_update_time = 0;
+
+bool ElementInDeque(Vector2 element, std::deque<Vector2> deque)
+{
+    for (unsigned int i = 0; i < deque.size(); i++)
+    {
+        if (Vector2Equals(deque[i], element))
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 bool eventTriggered(double interval)
 {
@@ -53,12 +66,12 @@ public:
     Vector2 position;
     Texture2D texture;
 
-    Food()
+    Food(std::deque<Vector2> snake_body)
     {
         Image image = LoadImage("Graphics/food.png");
         texture = LoadTextureFromImage(image);
         UnloadImage(image);
-        position = GenerateRandomPos();
+        position = GenerateRandomPos(snake_body);
     }
 
     ~Food()
@@ -71,20 +84,33 @@ public:
         DrawTexture(texture, position.x * cell_size, position.y * cell_size, WHITE);
     }
 
-    Vector2 GenerateRandomPos()
+    Vector2 GenerateRandomCell()
     {
         float x = GetRandomValue(0, cell_count - 1);
         float y = GetRandomValue(0, cell_count - 1);
 
         return Vector2{x, y};
     }
+
+    Vector2 GenerateRandomPos(std::deque<Vector2> snake_body)
+    {
+
+        Vector2 position = GenerateRandomCell();
+
+        while (ElementInDeque(position, snake_body))
+        {
+            position = GenerateRandomCell();
+        }
+
+        return position;
+    }
 };
 
 class Game
 {
-    public:
+public:
     Snake snake = Snake();
-    Food food = Food();
+    Food food = Food(snake.body);
 
     void Draw()
     {
@@ -95,6 +121,15 @@ class Game
     void Update()
     {
         snake.Update();
+        CheckCollisionWithFood();
+    }
+
+    void CheckCollisionWithFood()
+    {
+        if (Vector2Equals(snake.body[0], food.position))
+        {
+            food.position = food.GenerateRandomPos(snake.body);
+        }
     }
 };
 
